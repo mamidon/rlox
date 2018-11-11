@@ -13,14 +13,14 @@ fn main() -> Result<(), i32> {
     use runtime::*;
     
     let mut c= Chunk::create("test");
-    let index = c.add_constant(LoxValue::Number(6.14)).unwrap();
-    let index2 = c.add_constant(LoxValue::Number(3.14)).unwrap();
+    let index = c.add_constant(LoxValue::Number(3.0)).unwrap();
+    let index2 = c.add_constant(LoxValue::Number(7.0)).unwrap();
     
     let instructions = [
         Instruction::Constant(index),
         Instruction::Constant(index2),
         Instruction::Negate,
-        Instruction::Add,
+        Instruction::Multiply,
         Instruction::Return
     ];
     
@@ -38,8 +38,8 @@ fn main() -> Result<(), i32> {
     
     match outcome {
         ExecutionResult::Ok => { println!("Execution completed!"); },
-        ExecutionResult::StaticError => { println!("Static error!"); },
-        ExecutionResult::RuntimeError => { println!("Runtime error!"); },
+        ExecutionResult::StaticError(message) => { println!("{}", message); },
+        ExecutionResult::RuntimeError(message) => { println!("{}", message); },
     }
     
     Ok(())
