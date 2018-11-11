@@ -8,14 +8,22 @@ pub fn dissassemble_chunk(chunk: &Chunk) {
     let mut offset = 0;
     while let (bytes_consumed, Some(instruction)) = Instruction::from_bytecode(&mut bytecode) {
         print!("{:04x?}\t{:>4}\t", offset, chunk.line(offset));
-        println!("{}", dissassemble_instruction( chunk, instruction ));
+        disassemble_instruction(chunk, &instruction);
         offset = offset + bytes_consumed;
     }
+
+    println!("=== {} ===", chunk.name());
+    println!();
 }
 
-pub fn dissassemble_instruction(chunk: &Chunk, instruction: Instruction) -> String {
+pub fn disassemble_instruction(chunk: &Chunk, instruction: &Instruction) {
     match instruction {
-        Instruction::Return => format!("RET"),
-        Instruction::Constant(index) => format!("CONST  c[{:02x?}] '{:?}'", index, chunk.constant(index))
+        Instruction::Return => println!("RET"),
+        Instruction::Constant(index) => println!("CONST  c[{:02x?}] '{:?}'", index, chunk.constant(*index)),
+        Instruction::Negate => println!("NEG    sp[-1]"),
+        Instruction::Add => println!("ADD   sp[-1]  sp[-2]"),
+        Instruction::Subtract => println!("SUB  sp[-2]  sp[-1]"),
+        Instruction::Multiply => println!("MULT sp[-2]  sp[-1]"),
+        Instruction::Divide => println!("DIV    sp[-2]  sp[-1]")
     }
 }

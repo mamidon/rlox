@@ -10,16 +10,17 @@ mod runtime;
 #[allow(dead_code)]
 fn main() -> Result<(), i32> {
     use chunks::*;
-    use debug::*;
     use runtime::*;
     
-    let mut c= Chunk::create("test" );
+    let mut c= Chunk::create("test");
     let index = c.add_constant(LoxValue::Number(6.14)).unwrap();
     let index2 = c.add_constant(LoxValue::Number(3.14)).unwrap();
     
     let instructions = [
         Instruction::Constant(index),
-        Instruction::Constant(index2), 
+        Instruction::Constant(index2),
+        Instruction::Negate,
+        Instruction::Add,
         Instruction::Return
     ];
     
@@ -30,7 +31,16 @@ fn main() -> Result<(), i32> {
             c.write( count, b);
         });
     
-    dissassemble_chunk(&c );
+    let mut vm = VirtualMachine::create();
+    vm.enable_diagnostics();
+    
+    let outcome = vm.run(&c);
+    
+    match outcome {
+        ExecutionResult::Ok => { println!("Execution completed!"); },
+        ExecutionResult::StaticError => { println!("Static error!"); },
+        ExecutionResult::RuntimeError => { println!("Runtime error!"); },
+    }
     
     Ok(())
 }
