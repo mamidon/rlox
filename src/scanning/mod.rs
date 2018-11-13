@@ -106,34 +106,39 @@ impl<'a> Scanner<'a> {
             lexeme: self.consumed_characters.iter().collect()
         }
     }
-    
+    //(){},.-+;/!*><
     fn skip_whitespace(&mut self) {
         loop {
-            match self.source.peek() {
-                Some(' ') => {self.consume();},
-                Some('\r') => {self.consume();},
-                Some('\t') => {self.consume();},
+            match self.source.peek_next() {
+                Some(' ') => {self.ignore();},
+                Some('\r') => {self.ignore();},
+                Some('\t') => {self.ignore();},
                 Some('\n') => {
                     self.line_number += 1;
-                    self.consume();
+                    self.ignore();
                 },
                 Some('/') => {
-                    if let Some(_) = self.match_next('/') {
-                        while let Some(c) = self.consume() {
-                            if c == '\n' {
-                                break;
+                    match self.source.peek_ahead() {
+                        Some('/') => {
+                            self.ignore();
+                            self.ignore();
+                            while let Some(c) = self.ignore() {
+                                if c == '\n' {
+                                    break;
+                                }
                             }
                         }
+                        _ => { break; }
                     }
                 }
-                Some(_) => break,
+                Some(_) => { break; },
                 None => break
             };
         }
     }
     
     fn match_next(&mut self, expected: char) -> Option<char> {
-        if let Some(c) = self.source.peek() {
+        if let Some(c) = self.source.peek_ahead() {
             if c == expected {
                 return self.consume();
             }
@@ -150,6 +155,16 @@ impl<'a> Scanner<'a> {
             self.consumed_characters.push(c);
         }
         
+        return character;
+    }
+    
+    fn ignore(&mut self) -> Option<char> {
+        let character = self.source.next();
+
+        if let Some(_) = character {
+            self.current_character += 1;
+        }
+
         return character;
     }
 }

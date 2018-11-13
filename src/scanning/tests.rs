@@ -5,11 +5,6 @@ use std::fmt::Debug;
 #[test]
 pub fn scanner_recognizes_single_character_tokens() {
     let corpus = "(){},.-+;/!*><";
-    let tokens : Vec<TokenType> = tokenize(corpus)
-        .iter()
-        .map(|t| t.token_type)
-        .collect();
-    
     let expected = [
         TokenType::LeftParen,
         TokenType::RightParen,
@@ -27,17 +22,13 @@ pub fn scanner_recognizes_single_character_tokens() {
         TokenType::Less,
         TokenType::EndOfFile
     ];
-    
-    assert_slice_eq(tokens.as_slice(), &expected);
+
+    test_scanner(corpus, &expected);
 }
 
 #[test]
 fn scanner_recognizes_double_character_tokens() {
     let corpus = "< <= > >= ! != = ==";
-    let tokens : Vec<TokenType> = tokenize(corpus)
-        .iter()
-        .map(|t| t.token_type)
-        .collect();
     let expected = [
         TokenType::Less,
         TokenType::LessEqual,
@@ -49,32 +40,33 @@ fn scanner_recognizes_double_character_tokens() {
         TokenType::EqualEqual,
         TokenType::EndOfFile
     ];
-    
-    assert_slice_eq(tokens.as_slice(), &expected);
+
+    test_scanner(corpus, &expected);
 }
 
 #[test]
 fn scanner_ignores_whitespace() {
     let corpus = " \t \n \r . ";
-    let tokens : Vec<TokenType> = tokenize(corpus)
-        .iter()
-        .map(|t| t.token_type)
-        .collect();
     let expected = [TokenType::Dot, TokenType::EndOfFile];
-    
-    assert_slice_eq(tokens.as_slice(), &expected);
+
+    test_scanner(corpus, &expected);
 }
 
 #[test]
 fn scanner_ignore_comments() {
     let corpus = "+//totally a % comment % with illegal characters\n.";
-    let tokens : Vec<TokenType> = tokenize(corpus)
+    let expected = [TokenType::Plus, TokenType::Dot, TokenType::EndOfFile];
+
+    test_scanner(corpus, &expected);
+}
+
+fn test_scanner(corpus: &str, expected_tokens: &[TokenType]) {
+    let actual_tokens: Vec<TokenType> = tokenize(corpus)
         .iter()
         .map(|t| t.token_type)
         .collect();
-    let expected = [TokenType::Plus, TokenType::Dot, TokenType::EndOfFile];
-
-    assert_slice_eq(tokens.as_slice(), &expected);
+    
+    assert_slice_eq(actual_tokens.as_slice(), &expected_tokens);
 }
 
 fn tokenize(corpus: &str) -> Vec<Token> {
@@ -99,11 +91,14 @@ fn tokenize(corpus: &str) -> Vec<Token> {
 }
 
 fn assert_slice_eq<T: Eq + Debug>(actual: &[T], expected: &[T]) {
+    use std::cmp::min;
+    let safe_len = min(actual.len(), expected.len()) - 1;
     
-    assert_eq!(actual.len(), expected.len());
-    
-    for i in 0..(actual.len()-1) {
+    for i in 0..safe_len {
+        println!("actual[{}]={:?}\texpected[{}]={:?}", i, actual[i], i, expected[i]);
         assert_eq!(actual[i], expected[i]);
     }
+
+    assert_eq!(actual.len(), expected.len());
 }
 
