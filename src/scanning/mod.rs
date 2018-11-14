@@ -58,13 +58,23 @@ impl<'a> Scanner<'a> {
         self.lexeme_start = self.current_character;
         self.consumed_characters.clear();
         
-        let next_character = self.consume();
+        let next_character = self.consume_and_append();
         
         if let None = next_character {
             return self.create_token(TokenType::EndOfFile);
         }
         
-        let token_type = match next_character.unwrap() {
+        let next_character = next_character.unwrap();
+        
+        if '"' == next_character {
+            return self.create_string_token();
+        }
+        
+        if next_character.is_numeric() {
+            return self.create_number_token();
+        }
+        
+        let token_type = match next_character {
             '(' => TokenType::LeftParen,
             ')' => TokenType::RightParen,
             '{' => TokenType::LeftBrace,
@@ -106,23 +116,58 @@ impl<'a> Scanner<'a> {
             lexeme: self.consumed_characters.iter().collect()
         }
     }
-    //(){},.-+;/!*><
+    
+    fn create_string_token(&mut self) -> Token {
+        loop {
+            match self.source.peek_next() {
+                Some('"') => { return self.create_token(TokenType::String); },
+                Some('\n') => { self.line_number += 1; },
+                Some(_) => { self.consume_and_append(); },
+                None => { self.create_token(TokenType::Error("Expected terminating '\"' for string")); }
+            }
+        }
+
+        
+    }
+    
+    fn create_number_token(&mut self) -> Token {
+        loop {
+            match self.source.peek_next().filter(|c| c.is_numeric()) {
+                Some(_) => self.consume_and_append(),
+                None => break
+            };
+        }
+        
+        if self.source.peek_next().filter(|c| *c == '.').is_some() {
+            self.consume_and_append();
+
+            loop {
+                match self.source.peek_next().filter(|c| c.is_numeric()) {
+                    Some(_) => self.consume_and_append(),
+                    None => break
+                };
+            };
+        }
+        
+        return self.create_token(TokenType::Number);
+    }
+    
     fn skip_whitespace(&mut self) {
         loop {
             match self.source.peek_next() {
-                Some(' ') => {self.ignore();},
-                Some('\r') => {self.ignore();},
-                Some('\t') => {self.ignore();},
+                Some(' ') => {self.consume_and_discard();},
+                Some('\r') => {self.consume_and_discard();},
+                Some('\t') => {self.consume_and_discard();},
                 Some('\n') => {
                     self.line_number += 1;
-                    self.ignore();
+                    self.consume_and_discard();
                 },
                 Some('/') => {
                     match self.source.peek_ahead() {
                         Some('/') => {
-                            self.ignore();
-                            self.ignore();
-                            while let Some(c) = self.ignore() {
+                            self.consume_and_discard();
+                            self.consume_and_discard();
+                            while let Some(c) = self.consume_and_discard() {
                                 if c == '\n' {
                                     break;
                                 }
@@ -138,16 +183,16 @@ impl<'a> Scanner<'a> {
     }
     
     fn match_next(&mut self, expected: char) -> Option<char> {
-        if let Some(c) = self.source.peek_ahead() {
+        if let Some(c) = self.source.peek_next() {
             if c == expected {
-                return self.consume();
+                return self.consume_and_append();
             }
         }
         
         return None;
     }
     
-    fn consume(&mut self) -> Option<char> {
+    fn consume_and_append(&mut self) -> Option<char> {
         let character = self.source.next();
         
         if let Some(c) = character {
@@ -158,7 +203,7 @@ impl<'a> Scanner<'a> {
         return character;
     }
     
-    fn ignore(&mut self) -> Option<char> {
+    fn consume_and_discard(&mut self) -> Option<char> {
         let character = self.source.next();
 
         if let Some(_) = character {

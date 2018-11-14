@@ -60,6 +60,36 @@ fn scanner_ignore_comments() {
     test_scanner(corpus, &expected);
 }
 
+
+#[test]
+fn scanner_ignore_comments_at_file_end() {
+    let corpus = "+//totally a % comment % with illegal characters";
+    let expected = [TokenType::Plus, TokenType::EndOfFile];
+
+    test_scanner(corpus, &expected);
+}
+
+#[test]
+fn scanner_finds_string_literals() {
+    let corpus = "+.\"literal string // string literal\"))";
+    let expected = [
+        TokenType::Plus, 
+        TokenType::Dot, 
+        TokenType::String, 
+        TokenType::RightParen, 
+        TokenType::RightParen, 
+        TokenType::EndOfFile
+    ];
+    
+    test_scanner(corpus, &expected);
+    let tokens = tokenize(corpus);
+    let string_token = &tokens[2];
+    
+    assert_eq!(string_token.line_number, 1);
+    assert_eq!(string_token.lexeme_start, 2);
+    assert_eq!(string_token.lexeme, "\"literal string // string literal\"".to_string());
+}
+
 fn test_scanner(corpus: &str, expected_tokens: &[TokenType]) {
     let actual_tokens: Vec<TokenType> = tokenize(corpus)
         .iter()
